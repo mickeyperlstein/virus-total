@@ -11,6 +11,7 @@ log = logging.getLogger(__name__)
 
 class TrackingDb:
     def __init__(self):
+        self.last_track = None
         self.requests = {}
         self.responses = {}
 
@@ -20,8 +21,9 @@ class TrackingDb:
 
     def add_response(self, job_id, response_data ):
         self.responses[job_id] = response_data
+        self.last_track = datetime.datetime.utcnow()
 
-    def has_job_bellow_ttl(self, target_url, ttl: datetime.timedelta=None):
+    def has_job_bellow_ttl(self, target_url, ttl: datetime.timedelta = None):
 
         """
         :param target_url:
@@ -80,21 +82,34 @@ class UrlTracker:
             await asyncio.sleep(1 / self.throttle_per_min)
 
     async def track(self, target_url: [str]):
+        while datetime.datetime.utcnow() - self.db.last_track > datetime.timedelta(minutes=self.throttle_per_min):
+            await asyncio.sleep((datetime.datetime.utcnow() - self.db.last_track).seconds)
 
         job_id = self.db.has_job_bellow_ttl(target_url)
         if job_id:
             job_response = self.db.get_response(job_id) # move to decorator
             if not job_response:
-                resp = self.api.request("url/scan", params={"url": target_url}, method="POST")
+                return await self._request_from_api(target_url)
+            else:
+                return job_response
 
-                if resp.status_code != 200:
-                    log.error(f'Received non 200 response Error={resp}')
-                else:
-                    jsn = resp.json()
+    async def _request_from_api(self, target_url):
+        resp = self.api.request("url/scan", params={"url": target_url}, method="POST")
+        if resp.status_code != 200:
+            log.error(f'Received non 200 response Error={resp}')
+            return None
+        else:
+            jsn = resp.json()
 
-                    job_id = jsn['scan_id']
-                    job_date = jsn['scan_date']
+            job_id = jsn['scan_id']
+            job_date = jsn['scan_date']
 
-                    self.db.add_request(target_url, jsn, job_id, job_date)
+            self.db.add_request(target_url, jsn, job_id, job_date)
 
-                    return job_id
+            return job_id
+
+    def report_by_job_id(self, job_id):
+        pass
+
+    def report_by_job_url(self, job_id):
+        pass

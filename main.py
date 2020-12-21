@@ -32,11 +32,11 @@ async def scan_url(url: str, headers: Optional[str] = Header(None)):
 
 
 def main():
-
+    tracker = UrlTracker()
     with open('tests/resources/request1.csv') as f:
         reader = csv.reader(f)
         for row in reader:
-            print(row)
+            tracker.track(row)
 
 
 if __name__ == '__main__':
