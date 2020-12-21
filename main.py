@@ -1,3 +1,4 @@
+import csv
 from typing import Optional
 
 import virustotal_python
@@ -31,11 +32,15 @@ async def scan_url(url: str, headers: Optional[str] = Header(None)):
 
 
 def main():
-    pass
+
+    with open('tests/resources/request1.csv') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            print(row)
 
 
 if __name__ == '__main__':
-
+    main()
     config = Config()
     config.bind = ["localhost:8000"]  # As an example configuration setting
     config.debug = True
