@@ -47,6 +47,8 @@ if __name__ == '__main__':
 
     import asyncio
     from hypercorn.asyncio import serve
-
+    # run a second worker that checks reports every 30 min
     asyncio.run(serve(app, Config()))
+
+
 
